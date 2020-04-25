@@ -1,26 +1,60 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { Component } from "react";
+import { Route } from "react-router-dom";
+import Home from "./Home";
+import Profile from "./Profile";
+import Nav from "./Nav";
+import Auth from "./auth/Auth";
+import Callback from "./Callback";
+import Public from "./Public";
+import Private from "./Private";
+import Courses from "./Courses";
+import PrivateRoute from "./PrivateRoute";
+import AuthContext from "./AuthContext";
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      tokenRenewalComplete: false,
+      auth: new Auth(this.props.history),
+    };
+  }
+
+  componentDidMount() {
+    this.state.auth.renewToken(() => {
+      this.setState({ tokenRenewalComplete: true });
+    });
+  }
+
+  render() {
+    const { auth } = this.state;
+    if (!this.state.tokenRenewalComplete) return "Loading...";
+    return (
+      <AuthContext.Provider value={auth}>
+        <Nav auth={auth} />
+        <div className="body">
+          <Route
+            path="/"
+            exact
+            render={(props) => <Home auth={auth} {...props} />}
+          />
+          <PrivateRoute path="/profile" component={Profile} />
+          <PrivateRoute path="/private" component={Private} />
+          <PrivateRoute
+            path="/courses"
+            component={Courses}
+            scopes={["read:courses"]}
+          />
+          <Route
+            path="/callback"
+            exact
+            render={(props) => <Callback auth={auth} {...props} />}
+          />
+          <Route path="/public" component={Public} />
+        </div>
+      </AuthContext.Provider>
+    );
+  }
 }
 
 export default App;
